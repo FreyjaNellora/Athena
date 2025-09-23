@@ -2,6 +2,8 @@
 #include "utility.h"
 #include "movegen.h"
 #include "perft.h"
+#include "search.h"   // for negamax, SCORE_INFINITY
+#include "thread.h"   // for Thread
 
 namespace athena
 {
@@ -11,50 +13,50 @@ Engine::Engine() : pos()
     fromString(FEN_MODERN, pos);
 
     auto* uciCommand = app.add_subcommand("uci", "[UCI] Start UCI protocol and identify the engine")
-    ->callback([this]() { handleUCI(); });
+        ->callback([this]() { handleUCI(); });
 
     auto* isreadyCommand = app.add_subcommand("isready", "Ensure engine is fully initialized before continuing")
-    ->callback([this]() { handleIsReady(); });
+        ->callback([this]() { handleIsReady(); });
 
     auto* setOptionCommand = app.add_subcommand("setoption", "Set an engine option in UCI format")
-    ->callback([this]() { handleSetOption(); });
+        ->callback([this]() { handleSetOption(); });
 
     setOptionCommand->allow_extras();
 
     auto* ucinewgameCommand = app.add_subcommand("ucinewgame", "Start a new game")
-    ->callback([this]() { handleUCINewGame(); });
+        ->callback([this]() { handleUCINewGame(); });
 
     auto* positionCommand = app.add_subcommand("position", "Position setup and display")
-    ->callback([this]() { handlePosition(); });
+        ->callback([this]() { handlePosition(); });
     
     positionCommand->add_option("mode", position_mode, "Position setup mode")
-    ->required()
-    ->check(CLI::IsMember({"classic", "modern", "fen"}));
+        ->required()
+        ->check(CLI::IsMember({"classic", "modern", "fen"}));
     
     positionCommand->allow_extras();
     
-    auto* goCommand = app.add_subcommand("go", "COMPLETE")
-    ->callback([this]() { handleGo(); });
+    auto* goCommand = app.add_subcommand("go", "Start a search")
+        ->callback([this]() { handleGo(); });
 
-    auto* stopCommand = app.add_subcommand("stop", "COMPLETE")
-    ->callback([this]() { handleStop(); });
+    auto* stopCommand = app.add_subcommand("stop", "Stop the current search")
+        ->callback([this]() { handleStop(); });
 
     auto* exitCommand = app.add_subcommand("quit", "Quit the engine")
-    ->callback([this]() { handleQuit(); });
+        ->callback([this]() { handleQuit(); });
 
     auto* perftCommand = app.add_subcommand("perft", "Run perft to given depth")
-    ->callback([this]() { handlePerft(); });
+        ->callback([this]() { handlePerft(); });
 
     perftCommand->add_option("depth", perft_depth, "Depth to run perft")
-    ->required()
-    ->check(CLI::PositiveNumber);
+        ->required()
+        ->check(CLI::PositiveNumber);
 
     perftCommand->add_flag("-f,--full", perft_full, "Show full detailed report");
     perftCommand->add_flag("-s,--split", perft_split, "Show perft per move (split node counts)");
     perftCommand->add_flag("-c,--cumulative", perft_cumulative, "Show cumulative totals at each depth");
 
     auto* printCommand = app.add_subcommand("print", "Print current position")
-    ->callback([this]() { handlePrint(); });
+        ->callback([this]() { handlePrint(); });
 
     printCommand->add_flag("-c,--config", print_config, "Show current engine configuration");
     printCommand->add_flag("-f,--fen", print_fen, "Print position in FEN format");
@@ -83,24 +85,27 @@ void Engine::launch()
 
 void Engine::execute(int argc, const char* argv[])
 {
-    try // execute command //
+    try
     {
         app.clear();
 
-        // 
+        // reset flags
         perft_full = false;
         perft_split = false;
         perft_cumulative = false;
 
-        //
         print_config = false;
         print_fen = false;
         print_ascii_pieces = false;
         
         app.parse(argc, argv);
     } 
-    catch (const CLI::ParseError& e) { std::cerr << "info string cli invalid command" << std::endl; } 
-    catch (const std::exception&  e) { std::cout << "info string " << e.what() << std::endl; }
+    catch (const CLI::ParseError& e) {
+        std::cerr << "info string cli invalid command" << std::endl;
+    } 
+    catch (const std::exception& e) {
+        std::cout << "info string " << e.what() << std::endl;
+    }
 }
 
 void Engine::handleUCI()
@@ -131,13 +136,12 @@ void Engine::handleSetOption()
         else if (value == "off") debug = false;
         else throw std::invalid_argument("invalid debug value: " + value);
     }
-
     else throw std::invalid_argument("unknown option name: " + name);
 }
 
 void Engine::handleUCINewGame()
 {
-
+    // currently a stub
 }
 
 void Engine::handlePosition()
@@ -156,17 +160,13 @@ void Engine::handlePosition()
         fen = concatenate(extras, 0, numTokens, ' ');
         extras.erase(extras.begin(), extras.begin() + numTokens);
     }
-
     else if (position_mode == "modern" ) fen = FEN_MODERN ;
     else if (position_mode == "classic") fen = FEN_CLASSIC;
     
-    // 
     fromString(fen, pos);
 
-    //
     if (extras.empty()) return;
 
-    // 
     if (extras[0] == "moves")
     {
         Move moves[MAX_MOVES];
@@ -181,7 +181,7 @@ void Engine::handlePosition()
 
             for (int i = 0; i < size; ++i)
             {
-               if (toString(moves[i]) == move)
+                if (toString(moves[i]) == move)
                 {
                     pos.makemove(moves[i]);
                     break;
@@ -189,25 +189,47 @@ void Engine::handlePosition()
             }      
         }
     } 
-    
     else { throw std::invalid_argument("expected 'moves' keyword"); }
 }
 
 void Engine::handleGo()
 {
-    std::cout << "bestmove e2e4" << std::endl << std::flush;
+    int depth = 3;
+
+    auto* goCommand = app.get_subcommand("go");
+    const auto& extras = goCommand ? goCommand->remaining() : std::vector<std::string>{};
+
+    for (size_t i = 0; i + 1 < extras.size(); ++i)
+    {
+        if (extras[i] == "depth")
+        {
+            try {
+                depth = std::stoi(extras[i + 1]);
+            } catch (...) {
+                depth = 3;
+            }
+            break;
+        }
+    }
+
+    Thread thread{};
+    negamax(pos, thread, -SCORE_INFINITY, SCORE_INFINITY, depth, 0);
+
+    std::cout << "bestmove " << toString(thread.move) << std::endl << std::flush;
 }
 
 void Engine::handleStop()
 {
-
+    // currently a stub
 }
 
-void Engine::handleQuit() {
+void Engine::handleQuit()
+{
     std::exit(0);
 }
 
-void Engine::handlePerft() {
+void Engine::handlePerft()
+{
     runPerftTests(pos, perft_depth, perft_full, perft_split, perft_cumulative);
 }
 
