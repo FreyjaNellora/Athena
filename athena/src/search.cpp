@@ -8,8 +8,8 @@ namespace athena
 
     int SCORE_INFINITY = 100000;
     int SCORE_DRAW = 0;
-    int SCORE_CHECKMATE = 10000;
-    int MAX_PLAY = 128;
+    int SCORE_CHECKMATE = 99999;  // just below infinity
+    int MAX_PLAY        = 256;
 
     Move MOVE_DRAW_FIFTY_MOVE;
     Move MOVE_CHECKMATE;
