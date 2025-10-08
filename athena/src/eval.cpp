@@ -8,26 +8,40 @@
 namespace athena {
 
 int evaluate(const Position& pos) {
-	constexpr std::array<int, PIECE_NB> pieceValue = {0, 300, 300, 500, 900, 100, 0, 0};
-	// King=0, Knight=300, Bishop=300, Rook=500, Queen=900, Pawn=100, Empty=0, Stone=0
+    // Material-only evaluation for 4-player chess
+    std::array<int, COLOR_NB> material{};
 
-	std::array<int, COLOR_NB> material{};
+    for (Square sq : ALL_SQUARES) {
+        const auto pc = pos.board[sq];
+        const Color c = pc.color();
+        if (c == None) continue;  // skip empty/invalid
 
-	for (Square sq : ALL_SQUARES) {
-		PieceClass pc = pos.board[sq];
-		Piece pt = pc.piece();
-		Color c = pc.color();
-		if (pt == Empty || pt == Stone || c == None) continue;
-		material[c] += pieceValue[pt];
-	}
+        const auto pt = pc.piece();
+        int val = 0;
+        switch (pt) {
+            case Pawn:   val = 100; break;
+            case Knight: val = 300; break;
+            case Bishop: val = 300; break;
+            case Rook:   val = 500; break;
+            case Queen:  val = 900; break;
+            case King:
+            case Empty:
+            case Stone:
+            default:     val = 0;   break;
+        }
+        material[c] += val;
+    }
 
-	Color stm = pos.states.back().turn;
-	int stmMat = material[stm];
-	int othersMat = 0;
-	for (Color c : COLORS) {
-		if (c != stm) othersMat += material[c];
-	}
-	return stmMat - othersMat;
+    const Color stm = pos.states.back().turn;
+
+    int total = 0;
+    for (int m : material) total += m;
+
+    const int stmMat    = material[stm];
+    const int othersMat = total - stmMat;
+
+    return stmMat - othersMat;
+
 }
 
 }
