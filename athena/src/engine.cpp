@@ -37,6 +37,8 @@ Engine::Engine() : pos()
     
     auto* goCommand = app.add_subcommand("go", "Start a search")
         ->callback([this]() { handleGo(); });
+    goCommand->allow_extras();  // allow "go depth 1" etc.
+
 
     auto* stopCommand = app.add_subcommand("stop", "Stop the current search")
         ->callback([this]() { handleStop(); });
