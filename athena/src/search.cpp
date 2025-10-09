@@ -1,3 +1,4 @@
+
 #include "search.h"
 #include "movegen.h"
 #include "thread.h"
@@ -6,8 +7,12 @@
 #include "position.h"   // Position, GameState
 #include <vector>
 #include <algorithm>
+#include "constants.h" // For constants, if needed
+
+using namespace athena;
 
 namespace athena {
+
 
 int SCORE_INFINITY  = 100000;
 int SCORE_DRAW      = 0;
@@ -21,8 +26,9 @@ Move MOVE_STALEMATE;
 int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int play)
 {
     // Base case: stop at the requested depth
-    if (play == depth || play >= MAX_PLAY)
-        return evaluate(pos);
+        // We decrement depth each ply; stop when (depth <= 0)
+        if (depth <= 0 || play >= MAX_PLAY)
+    return athena::evaluate(pos);
 
     const GameState& gs = pos.states.back();
 
@@ -38,8 +44,8 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
     // Generate moves
     Move moves[MAX_MOVES];
     int size = 0;
-    size += genAllNoisyMoves(pos, moves + size);
-    size += genAllQuietMoves(pos, moves + size);
+    size += athena::genAllNoisyMoves(pos, moves + size);
+    size += athena::genAllQuietMoves(pos, moves + size);
 
     // Order moves: simple MVV-LVA for noisy moves, quiet = 0
     auto pieceValue = [](Piece p) {
@@ -65,8 +71,8 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
         }
         ordered.emplace_back(sc, m);
     }
-    std::stable_sort(ordered.begin(), ordered.end(),
-                     [](const auto& a, const auto& b){ return a.first > b.first; });
+    std::sort(ordered.begin(), ordered.end(),
+              [](const auto& a, const auto& b){ return a.first > b.first; });
 
     bool anyLegal = false;
     int bestScore = -SCORE_INFINITY;
@@ -75,14 +81,15 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
         Move m = it.second;
 
         pos.makemove(m);
-        if (!isRoyalSafe(pos, pos.states.back().turn)) {
+    if (!athena::isRoyalSafe(pos, pos.states.back().turn)) {
             pos.undomove(m);
             continue;
         }
         anyLegal = true;
 
         // We use play+1 because the base case is (play == depth)
-        int score = -negamax(pos, thread, -beta, -alpha, depth, play + 1);
+            // We decrement depth each ply; stop when (depth <= 0)
+            int score = -negamax(pos, thread, -beta, -alpha, depth - 1, play + 1);
         pos.undomove(m);
 
         if (score > bestScore) {
@@ -98,7 +105,7 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
 
     // No legal moves: stalemate/checkmate
     if (!anyLegal) {
-        if (isRoyalSafe(pos, pos.states.back().turn)) {
+        if (athena::isRoyalSafe(pos, pos.states.back().turn)) {
             if (play == 0) { thread.score = SCORE_DRAW; thread.move = MOVE_STALEMATE; }
             return SCORE_DRAW;
         } else {
