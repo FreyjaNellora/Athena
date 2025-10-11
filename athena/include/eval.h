@@ -5,8 +5,8 @@
 namespace athena
 {
 
-    int evaluate(const Position& pos);
+int evaluate(const Position& pos);
 
 } // namespace athena
 
-#endif // #ifndef EVAL_H
+#endif // #ifndef EVAL_H    `
