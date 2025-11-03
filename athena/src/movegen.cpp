@@ -205,7 +205,15 @@ inline auto genMoves(const Position& pos, Move* moves)
     return moves;
 }
 
-std::size_t genAllNoisyMoves(const Position& pos, Move* moves) { return (genMoves<Noisy>(pos, moves) - moves); }
-std::size_t genAllQuietMoves(const Position& pos, Move* moves) { return (genMoves<Quiet>(pos, moves) - moves); }
+// movegen.cpp  — change these two definitions
+
+int genAllNoisyMoves(const Position& pos, Move* moves) {
+    return static_cast<int>(genMoves<Noisy>(pos, moves) - moves);
+}
+
+int genAllQuietMoves(const Position& pos, Move* moves) {
+    return static_cast<int>(genMoves<Quiet>(pos, moves) - moves);
+}
+
 
 } // namespace athena

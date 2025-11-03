@@ -1,6 +1,3 @@
-
-
-
 #include "search.h"
 #include "movegen.h"
 #include "thread.h"
@@ -23,6 +20,7 @@ static inline int pieceValue(Piece p) {
     switch (p) {
         case Pawn:   return 100;
         case Knight: return 300;
+        // Bishop = 300 for now (baseline)
         case Bishop: return 300;
         case Rook:   return 500;
         case Queen:  return 900;
@@ -47,14 +45,15 @@ static int quiesce(Position& pos, int alpha, int beta) {
             continue;
         }
         int score = -quiesce(pos, -beta, -alpha);
-        pos.undomove(m);
-        if (score >= beta)  return beta;
-        if (score >  alpha) alpha = score;
+
+        if (score > alpha) alpha = score;
+        
     }
     return alpha;
 }
 
 int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int play) {
+    // depth decremented each ply; play only guards MAX_PLAY (safety cap)
     if (depth <= 0 || play >= MAX_PLAY)
         return quiesce(pos, alpha, beta);
 
@@ -107,8 +106,7 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
                 thread.move  = m;
             }
         }
-        if (score >= beta)   return beta;
-        if (score > alpha)   alpha = score;
+        
     }
     if (!anyLegal) {
         if (isRoyalSafe(pos, pos.states.back().turn)) {
@@ -119,26 +117,6 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
             return SCORE_CHECKMATE;
         }
     }
-    return bestScore;
-}
-
-} // namespace athena
-
-    if (score >= beta)   return beta; // fail-hard beta cutoff
-        if (score > alpha)   alpha = score;
-    }
-
-    // No legal moves: stalemate or checkmate
-    if (!anyLegal) {
-        if (isRoyalSafe(pos, pos.states.back().turn)) {
-            if (play == 0) { thread.score = SCORE_DRAW; thread.move = MOVE_STALEMATE; }
-            return SCORE_DRAW;
-        } else {
-            if (play == 0) { thread.score = SCORE_CHECKMATE; thread.move = MOVE_CHECKMATE; }
-            return SCORE_CHECKMATE;
-        }
-    }
-
     return bestScore;
 }
 
