@@ -1,0 +1,7 @@
+# modern
+depth=1 nodes=20
+depth=2 nodes=395
+
+# classic
+depth=1 nodes=20
+depth=2 nodes=395
