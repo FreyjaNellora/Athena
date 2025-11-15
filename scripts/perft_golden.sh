@@ -5,7 +5,7 @@ bin=./build/src/athena
 check() {
   local mode=$1 depth=$2 expect=$3
   got=$(printf "uci\nisready\nposition %s\nperft %d\nquit\n" "$mode" "$depth" | "$bin" \
-        | awk '/^ *[0-9]+/ {last=$3} END{print last}')
+    | awk '/^[[:space:]]*[0-9]+[[:space:]]/ { last=$2 } END { print last }')
   if [[ "$got" != "$expect" ]]; then
     echo "FAIL: $mode depth $depth expected $expect, got $got"
     exit 1
