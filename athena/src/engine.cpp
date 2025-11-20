@@ -213,9 +213,13 @@ void Engine::handleGo()
             break;
         }
     }
+        Thread thread{};
+    int score = negamax(pos, thread, -SCORE_INFINITY, SCORE_INFINITY, depth, 0);
 
-    Thread thread{};
-    negamax(pos, thread, -SCORE_INFINITY, SCORE_INFINITY, depth, 0);
+    std::cout << "info depth " << depth
+              << " score cp " << score
+              << " best " << toString(thread.move)
+              << std::endl;
 
     std::cout << "bestmove " << toString(thread.move) << std::endl << std::flush;
 }

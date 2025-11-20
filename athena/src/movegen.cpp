@@ -194,8 +194,8 @@ inline auto genMoves(const Position& pos, Move* moves)
     moves = genJumperMoves(pos, moves, kBB, allowed, King  , flag);
     
     // Generate color moves
-    if constexpr (flag == Noisy) moves = genPushMoves(pos, moves);
-    if constexpr (flag == Quiet) moves = genTakeMoves(pos, moves);
+    if constexpr (flag == Noisy) moves = genTakeMoves(pos, moves);
+    if constexpr (flag == Quiet) moves = genPushMoves(pos, moves);
 
     // Generate speical moves
     if constexpr (flag == Noisy) moves = genEvolveMoves(pos, moves);
