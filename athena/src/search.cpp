@@ -72,6 +72,8 @@ static int quiesce(Position& pos, int alpha, int beta) {
 // Uses MAX_PLAY as a safeguard against infinite recursion.
 // Sets thread.move and thread.score at root (play == 0) when a better move is found.
 int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int play) {
+    thread.nodes++;
+    
     // Base case: depth ≤ 0 or MAX_PLAY safety limit reached; enter quiescence search.
     // depth decremented each ply; play only guards MAX_PLAY (safety cap)
     if (depth <= 0 || play >= MAX_PLAY)
@@ -128,6 +130,8 @@ int negamax(Position& pos, Thread& thread, int alpha, int beta, int depth, int p
             if (play == 0) {
                 thread.score = bestScore;
                 thread.move  = m;
+                thread.pv.clear();
+                thread.pv.push_back(m);
             }
         }
         // Fail-hard beta cutoff: if score ≥ beta, return immediately (prune remaining moves).

@@ -199,8 +199,10 @@ void Engine::handleGo()
     int depth = 3;
 
     auto* goCommand = app.get_subcommand("go");
-    const auto& extras = goCommand ? goCommand->remaining() : std::vector<std::string>{};
+    const auto& extras = goCommand ? goCommand->remaining()
+                                   : std::vector<std::string>{};
 
+    // Parse optional "go depth N" from UCI input; default to depth 3 on error.
     for (size_t i = 0; i + 1 < extras.size(); ++i)
     {
         if (extras[i] == "depth")
@@ -213,15 +215,44 @@ void Engine::handleGo()
             break;
         }
     }
-        Thread thread{};
+
+    using namespace std::chrono;
+
+    // Start timing the search.
+    auto start = steady_clock::now();
+
+    // Fresh Thread: holds root move / score and node counter.
+    Thread thread{};
+    thread.score = 0;
+    thread.move  = Move{};
+    thread.nodes = 0;
+
+    // Core search: full window [-SCORE_INFINITY, +SCORE_INFINITY]
     int score = negamax(pos, thread, -SCORE_INFINITY, SCORE_INFINITY, depth, 0);
 
+    // Stop timing.
+    auto end = steady_clock::now();
+    auto ms  = duration_cast<milliseconds>(end - start).count();
+
+    // Nodes and nodes-per-second (nps) from the Thread.
+    std::uint64_t nodes = thread.nodes;
+    std::uint64_t nps   = 0;
+    if (ms > 0) {
+        double seconds = ms / 1000.0;
+        nps = static_cast<std::uint64_t>(nodes / seconds);
+    }
+
+    // UCI info: depth, score (cp), nodes, time (ms), nps, best move.
     std::cout << "info depth " << depth
               << " score cp " << score
-              << " best " << toString(thread.move)
+              << " nodes " << nodes
+              << " time " << ms
+              << " nps " << nps
+              << " pv " << toString(thread.move)
               << std::endl;
-
+              
     std::cout << "bestmove " << toString(thread.move) << std::endl << std::flush;
+
 }
 
 void Engine::handleStop()
