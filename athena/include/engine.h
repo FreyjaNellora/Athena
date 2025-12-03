@@ -50,6 +50,7 @@ class Engine
         // Other commands
         void handlePerft();
         void handlePrint();
+        void handleAthenaFen4();
         // void handleConfig();
         
     public:

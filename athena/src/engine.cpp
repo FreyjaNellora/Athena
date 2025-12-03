@@ -63,6 +63,9 @@ Engine::Engine() : pos()
     printCommand->add_flag("-c,--config", print_config, "Show current engine configuration");
     printCommand->add_flag("-f,--fen", print_fen, "Print position in FEN format");
     printCommand->add_flag("-a,--ascii", print_ascii_pieces, "Print board as ASCII layout");
+
+    auto* athenaFen4Command = app.add_subcommand("athena_fen4", "[GUI] Print a 14x14 dummy FEN4 board for testing")
+        ->callback([this]() { handleAthenaFen4(); });
 }
 
 void Engine::launch()
@@ -280,6 +283,11 @@ void Engine::handlePrint()
         std::cout << "configurations: "  << std::endl;
         std::cout << "debug " << (debug ? "on" : "off") << std::endl;
     }
+}
+
+void Engine::handleAthenaFen4()
+{
+    std::cout << "FEN4: 14/14/14/14/14/14/14/14/14/14/14/14/14/14" << std::endl << std::flush;
 }
 
 } // namespace athena
